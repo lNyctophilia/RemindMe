@@ -81,9 +81,12 @@ public class NotificationManager : MonoBehaviour
 
     public void CancelReminder(ReminderData data)
     {
+        AndroidNotificationCenter.CancelScheduledNotification(data.notificationId);
+        AndroidNotificationCenter.CancelDisplayedNotification(data.notificationId);
         AndroidNotificationCenter.CancelNotification(data.notificationId);
-#if UNITY_EDITOR
+
+    #if UNITY_EDITOR
         Debug.Log($"[NotificationManager] İptal edildi: id={data.notificationId} '{data.title}'");
-#endif
+    #endif
     }
 }
