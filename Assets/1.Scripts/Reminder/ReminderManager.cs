@@ -52,11 +52,13 @@ public class ReminderManager : MonoBehaviour
                 }
                 // Tek seferlik geçmiş reminder → atlanır
             }
+            /*
             else
             {
                 // Gelecek tarih → normal planla
                 manager.ScheduleReminder(reminder);
             }
+            */
         }
     }
 
