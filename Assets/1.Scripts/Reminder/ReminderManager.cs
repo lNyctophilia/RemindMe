@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Notifications.Android;
 using UnityEngine;
 
 public class ReminderManager : MonoBehaviour
@@ -22,44 +23,22 @@ public class ReminderManager : MonoBehaviour
 
     private void Start()
     {
-        NotificationManager manager = NotificationManager.Instance;
-        if (manager == null) return;
+        RefreshReminders();
+    }
 
+    public void RefreshReminders()
+    {
+        // Önce tüm bildirimleri iptal et
+        AndroidNotificationCenter.CancelAllScheduledNotifications();
+        AndroidNotificationCenter.CancelAllDisplayedNotifications();
+
+        // Sonra mevcut reminder listesinden tekrar ekle
         foreach (var reminder in reminderList.reminders)
         {
-            DateTime first = reminder.GetTargetDate();
-
-            // Geçmiş tarih kontrolü
-            if (first < DateTime.Now)
-            {
-                if (reminder.dayInterval > 0)
-                {
-                    // Tekrarlayan için future FireTime hesapla
-                    int daysPassed = (int)Math.Floor((DateTime.Now - first).TotalDays);
-                    int increments = ((daysPassed / reminder.dayInterval) + 1) * reminder.dayInterval;
-                    DateTime nextFireTime = first.AddDays(increments);
-
-                    var tempReminder = new ReminderData()
-                    {
-                        title = reminder.title,
-                        content = reminder.content,
-                        startDateTime = nextFireTime.ToString("dd.MM.yyyy HH:mm"),
-                        dayInterval = reminder.dayInterval
-                    };
-
-                    manager.ScheduleReminder(tempReminder);
-                    reminder.notificationId = tempReminder.notificationId;
-                }
-                // Tek seferlik geçmiş reminder → atlanır
-            }
-            /*
-            else
-            {
-                // Gelecek tarih → normal planla
-                manager.ScheduleReminder(reminder);
-            }
-            */
+            NotificationManager.Instance.ScheduleReminder(reminder);
         }
+
+        Debug.Log("🔄 Tüm hatırlatıcılar yenilendi.");
     }
 
     public void AddReminder(ReminderData data)
