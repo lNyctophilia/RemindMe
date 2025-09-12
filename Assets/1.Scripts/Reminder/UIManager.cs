@@ -82,4 +82,9 @@ public class UIManager : MonoBehaviour
             Debug.LogError($"❌ Beklenmeyen hata: {ex}");
         }
     }
+
+    public void OnBackupPressed()
+    {
+        SaveLoadSystem.Backup(ReminderManager.Instance.reminderList);
+    }
 }

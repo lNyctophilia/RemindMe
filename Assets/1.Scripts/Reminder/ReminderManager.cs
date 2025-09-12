@@ -18,7 +18,7 @@ public class ReminderManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        reminderList = SaveLoadSystem.Load();
+        reminderList = SaveLoadSystem.Load() ?? new ReminderList();
     }
 
     private void Start()
@@ -28,15 +28,16 @@ public class ReminderManager : MonoBehaviour
 
     public void RefreshReminders()
     {
-        // Önce tüm bildirimleri iptal et
         AndroidNotificationCenter.CancelAllScheduledNotifications();
         AndroidNotificationCenter.CancelAllDisplayedNotifications();
 
-        // Sonra mevcut reminder listesinden tekrar ekle
         foreach (var reminder in reminderList.reminders)
         {
             NotificationManager.Instance.ScheduleReminder(reminder);
         }
+
+        // Burada tüm id'ler güncellenmiş oluyor → kaydet
+        SaveLoadSystem.Save(reminderList);
 
         Debug.Log("🔄 Tüm hatırlatıcılar yenilendi.");
     }
