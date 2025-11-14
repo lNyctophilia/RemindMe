@@ -12,6 +12,8 @@ public class NotificationManager : MonoBehaviour
     public static NotificationManager Instance;
     private static bool channelRegistered = false;
 
+    public bool SetChannelRegistered { get => channelRegistered; set => channelRegistered = value; }
+
     private void Awake()
     {
         Instance = this;
@@ -85,8 +87,10 @@ public class NotificationManager : MonoBehaviour
         AndroidNotificationCenter.CancelDisplayedNotification(data.notificationId);
         AndroidNotificationCenter.CancelNotification(data.notificationId);
 
-    #if UNITY_EDITOR
-        Debug.Log($"[NotificationManager] İptal edildi: id={data.notificationId} '{data.title}'");
-    #endif
+        #if UNITY_EDITOR
+            Debug.Log($"[NotificationManager] İptal edildi: id={data.notificationId} '{data.title}'");
+        #endif
+
+        ReminderManager.Instance.RefreshReminders();
     }
 }

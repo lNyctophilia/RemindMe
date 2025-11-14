@@ -12,6 +12,15 @@ public class UIManager : MonoBehaviour
     public Transform contentParent;
     public GameObject reminderPrefab;
 
+    [Header("Screen")]
+    public GameObject AddScreen;
+    public Button CancelButton;
+    public Button ChangeButton;
+    public TMP_InputField c_titleInput;
+    public TMP_InputField c_contentInput;
+    public TMP_InputField c_startDateInput;   // "dd.MM.yyyy HH:mm"
+    public TMP_InputField c_daysIntervalInput;
+
     [Header("Input Fields")]
     public TMP_InputField titleInput;
     public TMP_InputField contentInput;
@@ -22,6 +31,8 @@ public class UIManager : MonoBehaviour
     {
         if (ReminderManager.Instance != null)
             RefreshList();
+
+        CancelButton.onClick.AddListener(() => CloseChangeScreen());
     }
 
     public void RefreshList()
@@ -38,21 +49,81 @@ public class UIManager : MonoBehaviour
             obj.transform.Find("DayInterval").GetComponent<TextMeshProUGUI>().text =
                 reminder.dayInterval > 0 ? $"{reminder.dayInterval} gün aralık" : "Tek seferlik";
 
+            obj.GetComponent<Button>().onClick.AddListener(() =>
+            {
+                ChangeButton.onClick.RemoveAllListeners();
+                ChangeButton.onClick.AddListener(() => Change(reminder));
+                OpenChangeScreen(reminder);
+            });
+
             Button deleteBtn = obj.transform.Find("TrashButton").GetComponent<Button>();
 
             // Closure problemi çözümü
             var r = reminder;
             deleteBtn.onClick.AddListener(() =>
-            {
-                ReminderManager.Instance.RemoveReminder(r);
-                RefreshList();
-            });
+                Warning.Instance.SetWarningScreen(true, () =>
+                {
+                    ReminderManager.Instance.RemoveReminder(r);
+                    RefreshList();
+                })
+            );
         }
 
         if (ReminderManager.Instance.reminderList.reminders.Count == 0)
             emptyCanvas.SetActive(true);
         else
             emptyCanvas.SetActive(false);
+    }
+
+    public void OpenChangeScreen(ReminderData oldReminder)
+    {
+        c_titleInput.text = oldReminder.title;
+        c_contentInput.text = oldReminder.content;
+        c_startDateInput.text = oldReminder.GetTargetDate().ToString("dd.MM.yyyy HH:mm");
+        c_daysIntervalInput.text = oldReminder.dayInterval.ToString();
+
+        AddScreen.SetActive(true);
+        CancelButton.gameObject.SetActive(true);
+    }
+    public void Change(ReminderData oldReminder)
+    {
+        OnConfirmChange();
+        ReminderManager.Instance.RemoveReminder(oldReminder);
+        RefreshList();
+        CloseChangeScreen();
+    }
+    public void CloseChangeScreen()
+    {
+        AddScreen.SetActive(false);
+        CancelButton.gameObject.SetActive(false);
+    }
+
+    public void OnConfirmChange()
+    {
+        try
+        {
+            ReminderData data = new ReminderData()
+            {
+                title = c_titleInput.text,
+                content = c_contentInput.text,
+                startDateTime = c_startDateInput.text.Trim(),
+                dayInterval = string.IsNullOrWhiteSpace(c_daysIntervalInput.text) ? 0 : int.Parse(c_daysIntervalInput.text.Trim())
+            };
+
+            DateTime target = data.GetTargetDate();
+            Debug.Log($"✅ Tarih: {target}");
+
+            ReminderManager.Instance.AddReminder(data);
+            RefreshList();
+        }
+        catch (FormatException ex)
+        {
+            Debug.LogWarning($"⚠️ Tarih formatı hatalı: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"❌ Beklenmeyen hata: {ex}");
+        }
     }
 
     public void OnConfirmAdd()
