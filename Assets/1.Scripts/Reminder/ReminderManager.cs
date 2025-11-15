@@ -28,7 +28,11 @@ public class ReminderManager : MonoBehaviour
 
     public void RefreshReminders()
     {
+        AndroidNotificationCenter.CancelAllDisplayedNotifications();
+        AndroidNotificationCenter.CancelAllScheduledNotifications();
+        AndroidNotificationCenter.CancelAllNotifications();
         AndroidNotificationCenter.DeleteNotificationChannel(NotificationManager.ChannelId);
+        AndroidNotificationCenter.DeleteNotificationChannelGroup(NotificationManager.ChannelId);
         NotificationManager.Instance.SetChannelRegistered = false;
         NotificationManager.EnsureChannel();
 
