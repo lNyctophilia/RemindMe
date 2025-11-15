@@ -33,6 +33,11 @@ public class UIManager : MonoBehaviour
             RefreshList();
 
         CancelButton.onClick.AddListener(() => CloseChangeScreen());
+
+        c_titleInput.onSelect.AddListener(_ => c_titleInput.caretPosition = c_titleInput.text.Length);
+        c_contentInput.onSelect.AddListener(_ => c_contentInput.caretPosition = c_contentInput.text.Length);
+        c_startDateInput.onSelect.AddListener(_ => c_startDateInput.caretPosition = c_startDateInput.text.Length);
+        c_daysIntervalInput.onSelect.AddListener(_ => c_daysIntervalInput.caretPosition = c_daysIntervalInput.text.Length);
     }
 
     public void RefreshList()
