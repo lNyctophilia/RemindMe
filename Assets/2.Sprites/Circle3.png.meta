@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 382c7f023ac38854aa064e9e451dab9d
+guid: 7067fb81c5fc4a041b1fbff4f78f3753
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 3039928290268580918
-    second: CircleFilled_0
+      213: -3907158944702478881
+    second: Circle3_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -37,7 +37,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 0
+    filterMode: 1
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -52,7 +52,7 @@ TextureImporter:
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 100
-  spriteBorder: {x: 400, y: 400, z: 400, w: 400}
+  spriteBorder: {x: 250, y: 0, z: 250, w: 250}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: CircleFilled_0
+      name: Circle3_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 800
-        height: 800
+        width: 500
+        height: 250
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 63c8e1c7caeff2a20800000000000000
-      internalID: 3039928290268580918
+      spriteID: fd5c40c04abf6c9c0800000000000000
+      internalID: -3907158944702478881
       vertices: []
       indices: 
       edges: []
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      CircleFilled_0: 3039928290268580918
+      Circle3_0: -3907158944702478881
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-public class ButtonPress : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerEnterHandler, IPointerExitHandler
+public class ButtonPress : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 {
     [Header("Settings")]
     [SerializeField] private float _clickIncreaseRate = 1.4f;
@@ -18,16 +18,6 @@ public class ButtonPress : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void OnPointerDown(PointerEventData eventData) => Pressed();
     public void OnPointerUp(PointerEventData eventData) => UnPressed();
-
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        LeanTween.scale(gameObject, buttonScale * _hoverIncreaseRate, _duration).setIgnoreTimeScale(true);
-    }
-
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        LeanTween.scale(gameObject, buttonScale, _duration).setIgnoreTimeScale(true);
-    }
 
     void Pressed()
     {

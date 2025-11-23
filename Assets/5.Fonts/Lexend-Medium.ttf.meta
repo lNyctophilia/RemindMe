@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 6537d62de75a8734d8d773149c6dc035
+guid: 9860e0988d367694796607dc45f99a7e
 TrueTypeFontImporter:
   externalObjects: {}
   serializedVersion: 4
@@ -9,7 +9,7 @@ TrueTypeFontImporter:
   characterPadding: 1
   includeFontData: 1
   fontNames:
-  - Lilita One
+  - Lexend
   fallbackFontReferences: []
   customCharacters: 
   fontRenderingMode: 0

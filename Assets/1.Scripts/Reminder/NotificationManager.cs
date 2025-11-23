@@ -4,93 +4,88 @@ using System;
 
 public class NotificationManager : MonoBehaviour
 {
-    [Header("References")]
-    [SerializeField] private Sprite _smallIcon;
-    [SerializeField] private Sprite _largeIcon;
-
-    public const string ChannelId = "reminder_channel";
     public static NotificationManager Instance;
-    private static bool channelRegistered = false;
-
-    public bool SetChannelRegistered { get => channelRegistered; set => channelRegistered = value; }
+    public const string ChannelId = "reminder_channel_v2"; // Kanal ID'sini değiştirdim ki eski buglı kanal temizlensin
 
     private void Awake()
     {
         Instance = this;
-        EnsureChannel();
+        InitializeChannel();
     }
-    private void Start()
-    {
-        NotificationPermission.PermissionRequest();
-    }
-    public static void EnsureChannel()
-    {
-        if (channelRegistered) return;
 
+    private void InitializeChannel()
+    {
         var channel = new AndroidNotificationChannel
         {
             Id = ChannelId,
-            Name = "Reminders",
-            Description = "Hatırlatıcı Bildirimleri",
-            Importance = Importance.High
+            Name = "Hatırlatıcılar",
+            Description = "Planlanmış hatırlatıcı bildirimleri",
+            Importance = Importance.High,
+            CanShowBadge = true,
+            EnableLights = true,
+            EnableVibration = true
         };
         AndroidNotificationCenter.RegisterNotificationChannel(channel);
-        channelRegistered = true;
     }
 
-    public void ScheduleReminder(ReminderData data)
+    public int ScheduleNotification(ReminderData data)
     {
-        EnsureChannel();
-
         DateTime fireTime = data.GetTargetDate();
 
-        // Geçmiş tarih kontrolü
+        // Geçmiş zaman kontrolü ve döngü hesaplaması
         if (fireTime <= DateTime.Now)
         {
             if (data.dayInterval > 0)
             {
-                // Repeat varsa gelecekteki ilk FireTime’a planla
-                int daysPassed = (int)Math.Floor((DateTime.Now - fireTime).TotalDays);
-                int increments = ((daysPassed / data.dayInterval) + 1) * data.dayInterval;
-                fireTime = fireTime.AddDays(increments);
+                // Geçmişte kalmışsa, gelecekteki bir sonraki periyoda atla
+                TimeSpan diff = DateTime.Now - fireTime;
+                int intervalsPassed = (int)(diff.TotalDays / data.dayInterval) + 1;
+                fireTime = fireTime.AddDays(intervalsPassed * data.dayInterval);
             }
             else
             {
-                // Tek seferlik geçmiş bildirimi atma
-                return;
+                // Tek seferlik ve zamanı geçmişse bildirim atma (-1 dön)
+                return -1;
             }
         }
 
-        var n = new AndroidNotification
+        var notification = new AndroidNotification
         {
             Title = data.title,
             Text = data.content,
             FireTime = fireTime,
-            SmallIcon = "icon_1",
+            SmallIcon = "icon_1", // Unity ayarlarında bu ikonların (small/large) eklendiğinden emin ol
             LargeIcon = "icon_0"
         };
 
         if (data.dayInterval > 0)
-            n.RepeatInterval = TimeSpan.FromDays(data.dayInterval);
+        {
+            notification.RepeatInterval = TimeSpan.FromDays(data.dayInterval);
+        }
 
-        int id = AndroidNotificationCenter.SendNotification(n, ChannelId);
-        data.notificationId = id;
-
-#if UNITY_EDITOR
-        Debug.Log($"[NotificationManager] Planlandı: '{data.title}' @ {fireTime} (repeat={data.dayInterval}) id={id}");
-#endif
+        // Yeni bir bildirim gönder ve ID'sini döndür
+        return AndroidNotificationCenter.SendNotification(notification, ChannelId);
     }
 
-    public void CancelReminder(ReminderData data)
+    public void CancelNotification(int notificationId)
     {
-        AndroidNotificationCenter.CancelScheduledNotification(data.notificationId);
-        AndroidNotificationCenter.CancelDisplayedNotification(data.notificationId);
-        AndroidNotificationCenter.CancelNotification(data.notificationId);
+        if (notificationId == 0) return;
+        
+        // SADECE Gelecek planını iptal et, ekrana düşmüşse elleme kalsın
+        AndroidNotificationCenter.CancelScheduledNotification(notificationId);
+        
+        // BU SATIRI SİLİYORUZ (veya yorum satırı yap):
+        // AndroidNotificationCenter.CancelDisplayedNotification(notificationId); 
+        
+        Debug.Log($"[Notification] Plan İptal Edildi ID: {notificationId}");
+    }
 
-        #if UNITY_EDITOR
-            Debug.Log($"[NotificationManager] İptal edildi: id={data.notificationId} '{data.title}'");
-        #endif
+    public void CancelAll()
+    {
+        // SADECE Planları iptal et
+        AndroidNotificationCenter.CancelAllScheduledNotifications();
 
-        ReminderManager.Instance.RefreshReminders();
+        // BU SATIRI DA SİLİYORUZ:
+        // AndroidNotificationCenter.CancelAllDisplayedNotifications();
     }
 }

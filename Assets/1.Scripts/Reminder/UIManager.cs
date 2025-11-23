@@ -2,165 +2,204 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using System.Collections;
 
 public class UIManager : MonoBehaviour
 {
-    [Header("EmptyCanvas")]
-    [SerializeField] private GameObject emptyCanvas;
-
-    [Header("References")]
+    [Header("UI Elements")]
+    public GameObject emptyCanvas;
     public Transform contentParent;
     public GameObject reminderPrefab;
 
-    [Header("Screen")]
-    public GameObject AddScreen;
-    public Button CancelButton;
-    public Button ChangeButton;
-    public TMP_InputField c_titleInput;
-    public TMP_InputField c_contentInput;
-    public TMP_InputField c_startDateInput;   // "dd.MM.yyyy HH:mm"
-    public TMP_InputField c_daysIntervalInput;
+    [Header("Add/Edit Screen")]
+    public GameObject AddScreen; // Hem ekleme hem düzenleme için ortak panel kullanıyorsan
+    public TMP_InputField inputTitle;
+    public TMP_InputField inputContent;
+    public TMP_InputField inputDate;
+    public TMP_InputField inputInterval;
+    
+    public Button saveButton;
+    public Button closeButton;
 
-    [Header("Input Fields")]
-    public TMP_InputField titleInput;
-    public TMP_InputField contentInput;
-    public TMP_InputField startDateInput;   // "dd.MM.yyyy HH:mm"
-    public TMP_InputField daysIntervalInput;
+    private ReminderData _currentEditingData = null; // Şu an düzenlenmekte olan veri
 
     private void Start()
     {
-        if (ReminderManager.Instance != null)
-            RefreshList();
+        RefreshUI();
+        
+        inputTitle.onSelect.RemoveAllListeners();
+        inputContent.onSelect.RemoveAllListeners();
+        inputDate.onSelect.RemoveAllListeners();
+        inputInterval.onSelect.RemoveAllListeners();
 
-        CancelButton.onClick.AddListener(() => CloseChangeScreen());
+        // Önce üzerindeki (Inspector dahil) tüm olayları temizle
+        closeButton.onClick.RemoveAllListeners();
+        saveButton.onClick.RemoveAllListeners();
 
-        c_titleInput.onSelect.AddListener(_ => c_titleInput.caretPosition = c_titleInput.text.Length);
-        c_contentInput.onSelect.AddListener(_ => c_contentInput.caretPosition = c_contentInput.text.Length);
-        c_startDateInput.onSelect.AddListener(_ => c_startDateInput.caretPosition = c_startDateInput.text.Length);
-        c_daysIntervalInput.onSelect.AddListener(_ => c_daysIntervalInput.caretPosition = c_daysIntervalInput.text.Length);
+        inputTitle.onSelect.AddListener(_ => MoveCaretToEnd(inputTitle));
+        inputContent.onSelect.AddListener(_ => MoveCaretToEnd(inputContent));
+        inputDate.onSelect.AddListener(_ => MoveCaretToEnd(inputDate));
+        inputInterval.onSelect.AddListener(_ => MoveCaretToEnd(inputInterval));
+
+        // Sonra temiz temiz yenilerini ekle
+        closeButton.onClick.AddListener(CloseScreen);
+        saveButton.onClick.AddListener(OnSavePressed);
     }
 
-    public void RefreshList()
+    public void RefreshUI()
     {
+        // Mevcut listeyi temizle
         foreach (Transform child in contentParent) Destroy(child.gameObject);
 
-        foreach (var reminder in ReminderManager.Instance.reminderList.reminders)
+        var list = ReminderManager.Instance.reminderList.reminders;
+
+        if (list.Count == 0)
+        {
+            emptyCanvas.SetActive(true);
+            return;
+        }
+        
+        emptyCanvas.SetActive(false);
+
+        foreach (var rem in list)
         {
             GameObject obj = Instantiate(reminderPrefab, contentParent);
-            obj.transform.Find("Title").GetComponent<TextMeshProUGUI>().text = reminder.title;
-            obj.transform.Find("Content").GetComponent<TextMeshProUGUI>().text = reminder.content;
-            obj.transform.Find("StartDate").GetComponent<TextMeshProUGUI>().text =
-                reminder.GetTargetDate().ToString("dd.MM.yyyy HH:mm") + " ->";
-            obj.transform.Find("DayInterval").GetComponent<TextMeshProUGUI>().text =
-                reminder.dayInterval > 0 ? $"{reminder.dayInterval} gün aralık" : "Tek seferlik";
 
-            obj.GetComponent<Button>().onClick.AddListener(() =>
+            obj.transform.Find("Title").GetComponent<TextMeshProUGUI>().text = rem.title;
+            obj.transform.Find("Content").GetComponent<TextMeshProUGUI>().text = rem.content;
+            obj.transform.Find("StartDate").GetComponent<TextMeshProUGUI>().text = rem.startDateTime;
+
+            string statusText = GetRemainingTimeText(rem);
+            string intervalText = rem.dayInterval > 0 ? $"{rem.dayInterval} günde bir" : "Tek seferlik";
+            string finalString = $"{intervalText} <color=#137FEC>{statusText}</color>";
+            obj.transform.Find("DayInterval").GetComponent<TextMeshProUGUI>().text = finalString;
+
+            // Silme Butonu
+            Button deleteBtn = obj.transform.Find("TrashButton").GetComponent<Button>();
+            deleteBtn.onClick.AddListener(() => 
             {
-                ChangeButton.onClick.RemoveAllListeners();
-                ChangeButton.onClick.AddListener(() => Change(reminder));
-                OpenChangeScreen(reminder);
+                Warning.Instance.SetWarningScreen(true, () => 
+                {
+                    ReminderManager.Instance.DeleteReminder(rem);
+                    Warning.Instance.CloseWarningScreen();
+                    RefreshUI();
+                });
             });
 
-            Button deleteBtn = obj.transform.Find("TrashButton").GetComponent<Button>();
-
-            // Closure problemi çözümü
-            var r = reminder;
-            deleteBtn.onClick.AddListener(() =>
-                Warning.Instance.SetWarningScreen(true, () =>
-                {
-                    ReminderManager.Instance.RemoveReminder(r);
-                    RefreshList();
-                })
-            );
+            // Tıklayınca Düzenleme
+            obj.GetComponent<Button>().onClick.AddListener(() => OpenEditScreen(rem));
         }
-
-        if (ReminderManager.Instance.reminderList.reminders.Count == 0)
-            emptyCanvas.SetActive(true);
-        else
-            emptyCanvas.SetActive(false);
     }
 
-    public void OpenChangeScreen(ReminderData oldReminder)
+    private string GetRemainingTimeText(ReminderData data)
     {
-        c_titleInput.text = oldReminder.title;
-        c_contentInput.text = oldReminder.content;
-        c_startDateInput.text = oldReminder.GetTargetDate().ToString("dd.MM.yyyy HH:mm");
-        c_daysIntervalInput.text = oldReminder.dayInterval.ToString();
+        DateTime targetTime = data.GetTargetDate();
+        DateTime now = DateTime.Now;
 
+        // Eğer tarih geçmişse ve tekrar döngüsü varsa, bir sonraki tarihi bul
+        if (targetTime <= now && data.dayInterval > 0)
+        {
+            TimeSpan diff = now - targetTime;
+            int intervalsPassed = (int)(diff.TotalDays / data.dayInterval) + 1;
+            targetTime = targetTime.AddDays(intervalsPassed * data.dayInterval);
+        }
+
+        // Gün farkını hesapla (Sadece tarih bazlı, saati önemsemeden)
+        TimeSpan timeDifference = targetTime.Date - now.Date;
+        int daysLeft = timeDifference.Days;
+
+        if (targetTime <= now && data.dayInterval == 0)
+        {
+             return "(Süresi Doldu)";
+        }
+
+        if (daysLeft == 0) return "(Bugün)";
+        if (daysLeft == 1) return "(Yarın)";
+        
+        return $"({daysLeft} gün kaldı)";
+    }
+
+    // --- Ekleme ve Düzenleme Ekranı Yönetimi ---
+
+    public void OpenAddScreen()
+    {
+        _currentEditingData = null; // Yeni kayıt
+        
+        ClearInputs();
+
+        closeButton.gameObject.SetActive(true);
         AddScreen.SetActive(true);
-        CancelButton.gameObject.SetActive(true);
     }
-    public void Change(ReminderData oldReminder)
+
+    public void OpenEditScreen(ReminderData data)
     {
-        OnConfirmChange();
-        ReminderManager.Instance.RemoveReminder(oldReminder);
-        RefreshList();
-        CloseChangeScreen();
+        _currentEditingData = data; // Düzenleme modu
+        inputTitle.text = data.title;
+        inputContent.text = data.content;
+        inputDate.text = data.startDateTime;
+        inputInterval.text = data.dayInterval.ToString();
+
+        closeButton.gameObject.SetActive(true);
+        AddScreen.SetActive(true);
     }
-    public void CloseChangeScreen()
+
+    private void MoveCaretToEnd(TMP_InputField input)
     {
+        input.caretPosition = input.text.Length;
+        input.selectionAnchorPosition = input.text.Length;
+        input.selectionFocusPosition = input.text.Length;
+    }
+
+    public void CloseScreen()
+    {
+        closeButton.gameObject.SetActive(false);
         AddScreen.SetActive(false);
-        CancelButton.gameObject.SetActive(false);
+        ClearInputs();
     }
 
-    public void OnConfirmChange()
+    private void ClearInputs()
     {
-        try
-        {
-            ReminderData data = new ReminderData()
-            {
-                title = c_titleInput.text,
-                content = c_contentInput.text,
-                startDateTime = c_startDateInput.text.Trim(),
-                dayInterval = string.IsNullOrWhiteSpace(c_daysIntervalInput.text) ? 0 : int.Parse(c_daysIntervalInput.text.Trim())
-            };
-
-            DateTime target = data.GetTargetDate();
-            Debug.Log($"✅ Tarih: {target}");
-
-            ReminderManager.Instance.AddReminder(data);
-            RefreshList();
-        }
-        catch (FormatException ex)
-        {
-            Debug.LogWarning($"⚠️ Tarih formatı hatalı: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"❌ Beklenmeyen hata: {ex}");
-        }
+        inputTitle.text = "";
+        inputContent.text = "";
+        inputDate.text = "";
+        inputInterval.text = "";
     }
 
-    public void OnConfirmAdd()
+    private void OnSavePressed()
     {
-        try
+        // Basit Validasyon
+        if (string.IsNullOrWhiteSpace(inputTitle.text) || string.IsNullOrWhiteSpace(inputDate.text))
         {
-            ReminderData data = new ReminderData()
-            {
-                title = titleInput.text,
-                content = contentInput.text,
-                startDateTime = startDateInput.text.Trim(),
-                dayInterval = string.IsNullOrWhiteSpace(daysIntervalInput.text) ? 0 : int.Parse(daysIntervalInput.text.Trim())
-            };
-
-            DateTime target = data.GetTargetDate();
-            Debug.Log($"✅ Tarih: {target}");
-
-            ReminderManager.Instance.AddReminder(data);
-            RefreshList();
+            Debug.LogWarning("Başlık ve Tarih boş olamaz!");
+            return;
         }
-        catch (FormatException ex)
+
+        int interval = 0;
+        int.TryParse(inputInterval.text, out interval);
+
+        // Geçici yeni veri objesi oluştur
+        ReminderData newData = new ReminderData()
         {
-            Debug.LogWarning($"⚠️ Tarih formatı hatalı: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"❌ Beklenmeyen hata: {ex}");
-        }
-    }
+            title = inputTitle.text,
+            content = inputContent.text,
+            startDateTime = inputDate.text,
+            dayInterval = interval
+        };
 
-    public void OnBackupPressed()
-    {
-        SaveLoadSystem.Backup(ReminderManager.Instance.reminderList);
+        if (_currentEditingData == null)
+        {
+            // --- YENİ KAYIT ---
+            ReminderManager.Instance.AddReminder(newData);
+        }
+        else
+        {
+            // --- DÜZENLEME ---
+            // Mevcut düzenlediğimiz verinin UID'sini koru
+            newData.uid = _currentEditingData.uid; 
+            ReminderManager.Instance.UpdateReminder(_currentEditingData, newData);
+        }
+
+        CloseScreen();
+        RefreshUI();
     }
 }

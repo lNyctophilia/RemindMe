@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 7f52737568ece864a87bb46337c9ac97
+guid: 7465e07caf9b8084bbf2280095238df5
 TrueTypeFontImporter:
   externalObjects: {}
   serializedVersion: 4
@@ -9,7 +9,7 @@ TrueTypeFontImporter:
   characterPadding: 1
   includeFontData: 1
   fontNames:
-  - Caveat
+  - Lexend
   fallbackFontReferences: []
   customCharacters: 
   fontRenderingMode: 0

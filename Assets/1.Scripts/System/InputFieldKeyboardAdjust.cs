@@ -5,7 +5,6 @@ using UnityEngine.EventSystems;
 public class InputFieldKeyboardAdjust : MonoBehaviour, IDeselectHandler
 {
     public RectTransform panelToMove;
-    public Toggle panelToggle;
     private Vector2 originalPos;
 
     void Start()
@@ -20,12 +19,11 @@ public class InputFieldKeyboardAdjust : MonoBehaviour, IDeselectHandler
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             panelToMove.gameObject.SetActive(false);
-            if (panelToggle) panelToggle.isOn = false;
             EventSystem.current.SetSelectedGameObject(null);
         }
 
         // Klavye yüksekliği (UI birimi)
-        int kbd = MobileUtilities.GetKeyboardHeightUI(panelToMove);
+        int kbd = MobileUtilities.GetKeyboardHeightUI(panelToMove, true);
 
         // Ufak oynama/jitter engellemek için bir eşik koyduk
         if (kbd > 10)
