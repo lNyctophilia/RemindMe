@@ -5,7 +5,7 @@ using System;
 public class NotificationManager : MonoBehaviour
 {
     public static NotificationManager Instance;
-    public const string ChannelId = "reminder_channel_v2"; // Kanal ID'sini değiştirdim ki eski buglı kanal temizlensin
+    public const string ChannelId = "reminder_channel"; // Kanal ID'sini değiştirdim ki eski buglı kanal temizlensin
 
     private void Awake()
     {
